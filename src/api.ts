@@ -162,6 +162,8 @@ const upsert = (curr: Summary, prev?: Summary): Summary => {
   return {
     state,
     chapters,
+    // TODO is this ok? I'm not sure what this function (upsert) is doing.
+    video_summary: curr.video_summary,
   }
 }
 

@@ -39,6 +39,7 @@ import browser from 'webextension-polyfill'
 import log from './log'
 import './panel.css'
 import './i18n'
+import ReactMarkdown from 'react-markdown'
 
 const TAG = 'panel'
 
@@ -177,7 +178,11 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
     checkNoTranscript(),
   )
 
-  const { state, chapters = [] } = (data || {}) as Summary
+  const {
+    state,
+    chapters = [],
+    video_summary: videoSummary,
+  } = (data || {}) as Summary;
   const doing = (state === State.DOING) && !error
   const done = (state === State.DONE) && !error
 
@@ -598,6 +603,14 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
             overflow: 'hidden scroll',
           }}
         >
+          {
+            videoSummary &&
+            <Box>
+              <ReactMarkdown className={`markdown-${currentTheme.palette.mode}`}>
+                {videoSummary}
+              </ReactMarkdown>
+            </Box>
+          }
           {
             list.length > 0 &&
             <List subheader={<li />}>

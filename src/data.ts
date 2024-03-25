@@ -58,6 +58,7 @@ export enum State {
 export interface Summary {
   state: State,
   chapters?: Chapter[],
+  video_summary?: string,
 }
 
 // https://en.wikipedia.org/wiki/Languages_used_on_the_Internet#Internet_users_by_language
