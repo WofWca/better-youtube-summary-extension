@@ -17,7 +17,8 @@ import { parseVid } from './utils'
 
 const TAG = 'api'
 
-export const BASE_URL = 'https://bys.mthli.com'
+// export const BASE_URL = 'https://bys.mthli.com'
+export const BASE_URL = 'https://youtube.magicboxpremium.com'
 export const APPLICATION_JSON = 'application/json'
 
 export const feedback = (pageUrl: string, good: boolean) => {
