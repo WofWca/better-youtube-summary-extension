@@ -23,6 +23,7 @@ const resources = {
       'optional': 'Optional',
       'settings': 'Settings',
       'summarize': 'Summarize',
+      'daily_usage_limit': 'Daily usage limit',
       'sync_to_video_time': 'Sync to Video Time',
       'translate': 'Translate',
       'unfold_less': 'Unfold Less',

@@ -6,9 +6,11 @@ import {
   Message,
   MessageType,
   PageChapter,
+  Settings,
   State,
   Summary,
   Translation,
+  dailyUsageLimit,
 } from './data'
 
 import browser from 'webextension-polyfill'
@@ -129,13 +131,36 @@ const onMessage = (
     case MessageType.RESPONSE:
       if (responseOk) {
         next?.(null, responseJson)
+
+        // Currently this code is only executed when the video has already been
+        // summarized before by the server.
+        // On the contrary, the code below (`sseEvent === SseEvent.CLOSE`)
+        // is only executed when the video has _not_ been summarized before
+        // and therefore the result is not cached in the server database.
+        // Retrieving a cached result doesn't really cost us much,
+        // so let's not decrease the limit here.
+        // Use case: the user refreshes the page and clicks "summarize" again.
+        // updateDailyUsageLimit()
+        //
+        // TODO But shouldn't either piece of code be executed in both cases
+        // (cached and uncached)?
+        // Maybe just rewrite all this in a more network-agnostic way, e.g. by
+        // watching all chapters and detecting when they're all completed.
       } else {
         next?.(new Error(JSON.stringify(responseJson)))
       }
       break
     case MessageType.SSE:
+      const sseData_: Summary = sseData;
       // Don't need to check sseEvent here.
-      next?.(null, prev => upsert(sseData, prev))
+      next?.(null, prev => upsert(sseData_, prev))
+
+      if (sseData_.state === State.DONE) {
+        // TODO fix: can't `SseEvent.CLOSE` be emitid in cases other than
+        // successful cmpletion? Currently no I think, but you never know.
+        updateDailyUsageLimit()
+      }
+
       break
     case MessageType.ERROR:
       next?.(error as Error)
@@ -144,6 +169,46 @@ const onMessage = (
       next?.(new Error(JSON.stringify(message)))
       break
   }
+}
+
+async function updateDailyUsageLimit() {
+  const {
+    [Settings.DAILY_LIMIT_USES_LEFT]: usesLeftOldFromStorage,
+  } = await browser.storage.sync
+    .get([
+      Settings.DAILY_LIMIT_USES_LEFT,
+    ])
+
+  const usesLeftOld: number = usesLeftOldFromStorage ?? dailyUsageLimit;
+  let usesLeftNew = usesLeftOld - 1;
+  if (usesLeftNew <= 0) {
+    // TODO fix: this can happen e.g. when the user has multiple tabs open.
+    // They can start summarization on all of the tabs within a couple of
+    // seconds, but this code only gets executed when a summarization
+    // finishes.
+    log(TAG, 'Used summarization when daily limit is exhausted');
+    usesLeftNew = 0;
+  }
+
+  // We could also check if `Settings.DAILY_LIMIT_RESET_TIME`
+  // is `undefined | null` instead.
+  const isFirstUsageAfterLimitReset = usesLeftOld === dailyUsageLimit;
+  if (isFirstUsageAfterLimitReset) {
+    browser.storage.sync.set({
+      // Let's make it 16 hours instead of 24, so that if they used the
+      // extension at 15:00 one day, they can use it again the next morning,
+      // from 07:00.
+      // The point of the limit is to make it impossible to use the extension
+      // more than 5 times before they go to sleep, and not strictly 24 hours.
+      [Settings.DAILY_LIMIT_RESET_TIME]: Date.now() + 16 * 60 * 60 * 1000,
+    });
+    // The count reset itself is performed somewhere else in the code, closer
+    // to the place where the value is actually used (read), and that is the
+    // UI.
+  }
+  browser.storage.sync.set({
+    [Settings.DAILY_LIMIT_USES_LEFT]: usesLeftNew,
+  });
 }
 
 const upsert = (curr: Summary, prev?: Summary): Summary => {

@@ -42,7 +42,11 @@ export enum Settings {
   OPENAI_API_KEY = 'openai_api_key',
   TRANSLATION_TARGET_LANG = 'translation_target_lang',
   COPY_WITH_TIMESTAMPS = 'copy_with_timestamps',
+  DAILY_LIMIT_USES_LEFT = 'daily_limit_uses_left',
+  DAILY_LIMIT_RESET_TIME = 'daily_limit_reset_time',
 }
+
+export const dailyUsageLimit = 5;
 
 export enum SseEvent {
   SUMMARY = 'summary',
