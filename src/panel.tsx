@@ -31,8 +31,8 @@ import {
   Summary,
   TargetLang,
 } from './data'
-import { copyChapters } from './utils'
-import { useSummarize, feedback } from './api'
+import { copyChapters, parseVid } from './utils'
+import { useSummarize, feedback, useTranslate } from './api'
 import { Map as ImmutableMap } from 'immutable'
 
 import browser from 'webextension-polyfill'
@@ -181,10 +181,21 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
   const {
     state,
     chapters = [],
-    video_summary: videoSummary,
+    video_summary: videoSummaryUntranslated,
   } = (data || {}) as Summary;
   const doing = (state === State.DOING) && !error
   const done = (state === State.DONE) && !error
+
+  const { data: videoSummaryTranslateData, /* error, isLoading */ } = useTranslate(
+    // TODO what is `translatable` idk?
+    translatable,
+    parseVid(pageUrl),
+    'video_summary', // Special value instead of UUID cid.
+    targetLang
+  )
+  const { summary: videoSummaryTranslated } = videoSummaryTranslateData || {}
+
+  const videoSummary = videoSummaryTranslated || videoSummaryUntranslated;
 
   const summarizeDisabled = doing || !chaptersReady
 
