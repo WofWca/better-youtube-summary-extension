@@ -111,6 +111,8 @@ const parseChapters = (): PageChapter[] => {
 
 const Panel = ({ pageUrl }: { pageUrl: string }) => {
   const [prevPageUrl, setPrevPageUrl] = useState(pageUrl)
+  const [chaptersReadyAt, setChaptersReadyAt] = useState(Date.now())
+  const [chaptersReady, setChaptersReady] = useState(true)
 
   const itemRefs = useRef(new Map<string, Element | null>())
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)')
@@ -146,7 +148,26 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
     // TODO refactor: perhaps there is a less fragile way to do this?
     setSummarizing(0) // cancel all requests before.
     setTranslatable(false) // cancel all requests before.
+
+    // But the user might still start summarization manually.
+    // Let's stop that with this one stupid timeout.
+    setChaptersReady(false)
+    // TODO fix: actually detect whether the new chapters have loaded.
+    setChaptersReadyAt(Date.now() + 3 * 1000)
   }
+  useEffect(() => {
+    if (chaptersReady) {
+      return;
+    }
+    const untilChaptersReady = chaptersReadyAt - Date.now();
+    const timeoutId = setTimeout(() => {
+      log(TAG, `assuming that chapters have loaded`);
+      setChaptersReady(true);
+    }, untilChaptersReady);
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [chaptersReady, chaptersReadyAt])
 
   const { t } = useTranslation()
   const { data, error } = useSummarize(
@@ -159,6 +180,8 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
   const { state, chapters = [] } = (data || {}) as Summary
   const doing = (state === State.DOING) && !error
   const done = (state === State.DONE) && !error
+
+  const summarizeDisabled = doing || !chaptersReady
 
   const transDisabled = !done
   let transIconColor = iconColorActive
@@ -393,16 +416,16 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
                 >
                   <IconButton
                     aria-label={t('summarize').toString()}
-                    disabled={doing}
-                    style={{ color: doing ? iconColorDisabled : iconColorActive }} // not `sx` here.
+                    disabled={summarizeDisabled}
+                    style={{ color: summarizeDisabled ? iconColorDisabled : iconColorActive }} // not `sx` here.
                     onClick={() => setSummarizing(summarizing + 1)}
                   >
                     {
-                      !doing &&
+                      !summarizeDisabled &&
                       <span className='material-symbols-outlined'>summarize</span>
                     }
                     {
-                      doing &&
+                      summarizeDisabled &&
                       <GooSpinner
                         size={24}
                         color={currentTheme.palette.text.primary}
