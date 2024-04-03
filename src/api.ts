@@ -48,7 +48,7 @@ export const useSummarize = (
 ) => {
   const vid = parseVid(pageUrl)
   const chapters = pageChapters ?? []
-  log(TAG, `useSummarize, vid=${vid}, toggled=${toggled}`)
+  log(TAG, `useSummarize, vid=${vid}, toggled=${toggled}, chapters.length=${chapters.length}, last_chapter="${chapters[chapters.length - 1]?.title}"`)
 
   // Allow resummarize when `toggled` changed.
   return useSWRSubscription(

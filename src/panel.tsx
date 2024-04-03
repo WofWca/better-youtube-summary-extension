@@ -110,6 +110,8 @@ const parseChapters = (): PageChapter[] => {
 }
 
 const Panel = ({ pageUrl }: { pageUrl: string }) => {
+  const [prevPageUrl, setPrevPageUrl] = useState(pageUrl)
+
   const itemRefs = useRef(new Map<string, Element | null>())
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)')
   const currentTheme = checkIsDarkMode(prefersDarkMode) ? darkTheme : lightTheme
@@ -128,6 +130,23 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
 
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const [playerHeight, setPlayerHeight] = useState(560) // px.
+
+  if (pageUrl !== prevPageUrl) {
+    log(TAG, `new pageUrl new=${pageUrl}, old=${prevPageUrl}`);
+    setPrevPageUrl(pageUrl);
+
+    // This is important to do in order to not start another
+    // `useSummarize` request immediately after the URL change.
+    // It's not only for performance reasons but also because
+    // right after the URL change `parseChapters()` might return the
+    // chapters from the previous video
+    // (because the new page hasn't fully loaded yet),
+    // and the backend would save it to the database, but it will associate it
+    // with the new video URL.
+    // TODO refactor: perhaps there is a less fragile way to do this?
+    setSummarizing(0) // cancel all requests before.
+    setTranslatable(false) // cancel all requests before.
+  }
 
   const { t } = useTranslation()
   const { data, error } = useSummarize(
@@ -279,12 +298,6 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
       browser.storage.onChanged.removeListener(listener)
     }
   }, [])
-
-  useEffect(() => {
-    log(TAG, `useEffect, pageUrl=${pageUrl}`)
-    setSummarizing(0) // cancel all requests before.
-    setTranslatable(false) // cancel all requests before.
-  }, [pageUrl])
 
   useEffect(() => {
     log(TAG, `useEffect, selected=${selected}`)
