@@ -8,9 +8,9 @@ Literally Better YouTube Summary 🎯
 
 because OpenAI banned my account due to "accessing the API from an [unsupported location](https://platform.openai.com/docs/supported-countries)" 👎
 
-The backend implementation can be found in [mthli/better-youtube-summary-server](https://github.com/mthli/better-youtube-summary-server).
+The backend implementation can be found in [WofWca/better-youtube-summary-server](https://github.com/WofWca/better-youtube-summary-server).
 
-If you want to deploy it yourself, please replace the `bys.mthli.com` with your own domain.
+If you want to deploy it yourself, please replace the `youtube.magicboxpremium.com` with your own domain.
 
 ## Build
 
