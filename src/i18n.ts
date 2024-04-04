@@ -5,8 +5,8 @@ import { initReactI18next } from 'react-i18next'
 const resources = {
   en: {
     translation: {
-      'title': 'Better YouTube Summary',
-      'slogan': 'Literally Better YouTube Summary 🎯',
+      'title': 'YouTube Video Summarizer',
+      'slogan': '',
 
       'translation': 'Set Translation Language',
       'openai': 'I want to use my OpenAI API Key',
@@ -33,7 +33,7 @@ const resources = {
   },
   zh: {
     translation: {
-      'title': 'Better YouTube Summary',
+      'title': 'YouTube Video Summarizer',
       'slogan': '字面意义上更好的 YouTube 摘要插件 🎯',
 
       'translation': '设置翻译语言',
