@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "minimum_chrome_version": "92",
-  "name": "Better YouTube Summary",
-  "description": "Literally Better YouTube Summary 🎯",
+  "name": "YouTube Video Summarizer",
+  "description": "📝 Effortlessly summarize YouTube videos with 'YouTube Video Summarizer', your AI video-to-text converter and Chat GPT tool",
   "version": "1.2.1",
   "icons": {
     "16": "icon16.png",
-    "48": "icon48.png",
+    "32": "icon32.png",
+    "64": "icon64.png",
     "128": "icon128.png"
   },
   "options_ui": {
@@ -34,6 +35,6 @@
     "storage"
   ],
   "host_permissions": [
-    "https://bys.mthli.com/*"
+    "https://youtube.magicboxpremium.com/*"
   ]
 }
