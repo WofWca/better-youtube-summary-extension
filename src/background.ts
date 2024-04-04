@@ -71,6 +71,14 @@ if (isChrome()) {
   }
 }
 
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === (chrome.runtime as any).OnInstalledReason.INSTALL) {
+    chrome.tabs.create({
+      url: "https://magicboxpremium.com/extension/yt/index.html",
+    });
+  }
+});
+
 // https://github.com/Azure/fetch-event-source
 class FatalError extends Error { /* DO NOTHING. */ }
 class RetriableError extends Error { /* DO NOTHING. */ }
