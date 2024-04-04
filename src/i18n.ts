@@ -14,6 +14,7 @@ const resources = {
       'twitter': 'Follow on Twitter',
       'telegram': 'Join Telegram Group',
       'gmail': 'Feedback by Email',
+      'source_code': 'Source Code',
 
       'bad': 'Bad',
       'close': 'Close',

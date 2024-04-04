@@ -258,7 +258,7 @@ const App = () => {
               </Box>
             </ListItemButton>
           </ListItem>
-          <ListItem disablePadding>
+          <ListItem disablePadding divider>
             <ListItemButton
               component='a'
               href={`mailto:matthewlee0725@gmail.com?subject=${`${title} ${version}`}`}
@@ -274,6 +274,27 @@ const App = () => {
               >
                 <ListItemText>
                   {t('gmail').toString()}
+                </ListItemText>
+                <span className="material-symbols-outlined">open_in_new</span>
+              </Box>
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton
+              component='a'
+              href='https://github.com/WofWca/better-youtube-summary-extension'
+              target='_blank'
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                }}
+              >
+                <ListItemText>
+                  {t('source_code').toString()}
                 </ListItemText>
                 <span className="material-symbols-outlined">open_in_new</span>
               </Box>
