@@ -322,22 +322,23 @@ browser.runtime.onConnect.addListener(port => {
       },
     }
 
-    Promise.all([getOrGenerateUid(), getOpenAiApiKey()])
-      .then(([uid, key]) => {
-        const { headers = {} } = requestInit || {}
-        return {
-          ...requestInit,
-          headers: {
-            ...headers,
-            'uid': uid,
-            'openai-api-key': key, // don't use underscore here because of nginx.
-            'browser': isChrome() ? 'chrome' : 'firefox',
-            'ext-version': manifest.version,
-          },
-          ...sseInit,
-        }
-      })
-      .then(init => fetchEventSource(requestUrl, init))
+    const uidP = getOrGenerateUid()
+    const openAiApiKeyP = getOpenAiApiKey()
+    ;(async () => {
+      const { headers = {} } = requestInit || {}
+      const init = {
+        ...requestInit,
+        headers: {
+          ...headers,
+          'uid': await uidP,
+          'openai-api-key': await openAiApiKeyP, // don't use underscore here because of nginx.
+          'browser': isChrome() ? 'chrome' : 'firefox',
+          'ext-version': manifest.version,
+        },
+        ...sseInit,
+      }
+      await fetchEventSource(requestUrl, init)
+    })()
       .catch(error => {
         log(TAG, `sse, catch but ignore, error=${error}`)
         // DO NOTHING.
