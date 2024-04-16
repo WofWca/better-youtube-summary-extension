@@ -27,11 +27,13 @@ import {
   Message,
   MessageType,
   PageChapter,
+  PaymentStatus,
+  PaymentStatusType,
   Settings,
   State,
   Summary,
   TargetLang,
-  dailyUsageLimit,
+  initialTrialUsageLimit,
 } from './data'
 import { copyChapters, parseVid } from './utils'
 import { useSummarize, feedback, useTranslate } from './api'
@@ -125,8 +127,7 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
   const iconColorHighlight = currentTheme.palette.primary.main
   const targetLangkeys = Object.keys(TargetLang)
 
-  const [dailyLimitUsesLeft, setDailyLimitUsesLeft] = useState<number | undefined>();
-  const [dailyLimitResetTime, setDailyLimitResetTime] = useState<number | undefined | null>();
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | undefined>();
 
   const [summarizing, setSummarizing] = useState(0)
   const [translatable, setTranslatable] = useState(false)
@@ -289,57 +290,31 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
   }
 
   useEffect(() => {
-    let dailyLimtResetTimeoutId = -1;
-    /** Calling multiple times with the same value is fine. */
-    const handleNewDailyLimitResetTime = (resetTime: number | undefined | null) => {
-      setDailyLimitResetTime(resetTime);
-
-      clearTimeout(dailyLimtResetTimeoutId);
-
-      if (resetTime == undefined) {
-        return;
-      }
-
-      // This could be negative if the page is loaded for the first time in
-      // a while.
-      const msUntilReset = Math.max(0, resetTime - Date.now());
-      // TODO refactor this is executed on all open tabs. Not great I guess.
-      dailyLimtResetTimeoutId = window.setTimeout(() => {
-        browser.storage.sync.set({
-          [Settings.DAILY_LIMIT_USES_LEFT]: dailyUsageLimit,
-          // This is important, because otherwise this code would reset the
-          // limit again on a page refresh.
-          [Settings.DAILY_LIMIT_RESET_TIME]: null,
-        });
-        setDailyLimitUsesLeft(dailyUsageLimit);
-      }, msUntilReset);
-    }
-
     browser.storage.sync
       .get([
         Settings.TRANSLATION_TARGET_LANG,
         Settings.COPY_WITH_TIMESTAMPS,
-        Settings.DAILY_LIMIT_USES_LEFT,
-        Settings.DAILY_LIMIT_RESET_TIME,
+        Settings.PAYMENT_STATUS,
       ])
       .then(({
         [Settings.TRANSLATION_TARGET_LANG]: lang,
         [Settings.COPY_WITH_TIMESTAMPS]: copy,
-        [Settings.DAILY_LIMIT_USES_LEFT]: usesLeft,
-        [Settings.DAILY_LIMIT_RESET_TIME]: resetTime,
+        [Settings.PAYMENT_STATUS]: paymentStatus,
+      }: {
+        [Settings.TRANSLATION_TARGET_LANG]?: string,
+        [Settings.COPY_WITH_TIMESTAMPS]?: boolean,
+        [Settings.PAYMENT_STATUS]?: PaymentStatus,
       }) => {
         // We only update the usage limit in api.ts and not simply
         // `onClick` of the "summary" button because
         // we don't want to spend the limit if the request fails for
         // whatever reason.
-        setDailyLimitUsesLeft(usesLeft ?? dailyUsageLimit)
-        // `undefined | null` is fine
-        handleNewDailyLimitResetTime(resetTime)
+        setPaymentStatus(paymentStatus)
 
         setCopyWithTimestamps(Boolean(copy))
 
-        if (targetLangkeys.includes(lang)) {
-          setTargetLang(lang)
+        if (targetLangkeys.includes(lang as any)) {
+          setTargetLang(lang as any)
           return
         }
 
@@ -358,11 +333,8 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
           setTargetLang(newValue)
         } else if (key === Settings.COPY_WITH_TIMESTAMPS) {
           setCopyWithTimestamps(newValue)
-        } else if (key === Settings.DAILY_LIMIT_USES_LEFT) {
-          setDailyLimitUsesLeft(newValue)
-        } else if (key === Settings.DAILY_LIMIT_RESET_TIME) {
-          // Keep in mind that the new value could be `null`
-          handleNewDailyLimitResetTime(newValue)
+        } else if (key === Settings.PAYMENT_STATUS) {
+          setPaymentStatus(newValue)
         }
       }
     }
@@ -481,11 +453,9 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
                   <IconButton
                     aria-label={t('summarize').toString()}
                     disabled={
-                      summarizeDisabled ||
-                      // Disable until the actual count is initialized,
-                      // because it could be 0.
-                      dailyLimitUsesLeft == undefined ||
-                      dailyLimitUsesLeft <= 0
+                      summarizeDisabled
+                      // Not disabling if not paid / trial ended because
+                      // `onClick` handles that case.
                     }
                     style={{ color: summarizeDisabled ? iconColorDisabled : iconColorActive }} // not `sx` here.
                     onClick={() => setSummarizing(summarizing + 1)}
@@ -507,10 +477,9 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
               </Tooltip>
               {
                 list.length <= 0 &&
-                // TODO more details about how the daily limit works.
-                // And when it's going to be reset (maybe add
-                // a progress bar somewhere even).
-                <Tooltip title={t('daily_usage_limit').toString()}>
+                paymentStatus?.type
+                  === PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED &&
+                <Tooltip title={t('trial_uses_left').toString()}>
                   <Typography
                     variant='body1'
                     sx={{
@@ -521,7 +490,7 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
                     }}
                   >
                     {
-                      `${dailyLimitUsesLeft ?? '?'} / ${dailyUsageLimit}`
+                      `${paymentStatus.usesLeft} / ${initialTrialUsageLimit}`
                     }
                   </Typography>
                 </Tooltip>

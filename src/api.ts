@@ -6,11 +6,12 @@ import {
   Message,
   MessageType,
   PageChapter,
+  PaymentStatus,
+  PaymentStatusType,
   Settings,
   State,
   Summary,
   Translation,
-  dailyUsageLimit,
 } from './data'
 
 import browser from 'webextension-polyfill'
@@ -141,6 +142,7 @@ const onMessage = (
         // so let's not decrease the limit here.
         // Use case: the user refreshes the page and clicks "summarize" again.
         // updateDailyUsageLimit()
+        // updateTrialUsesLeftCountIfApplicable()
         //
         // TODO But shouldn't either piece of code be executed in both cases
         // (cached and uncached)?
@@ -158,7 +160,8 @@ const onMessage = (
       if (sseData_.state === State.DONE) {
         // TODO fix: can't `SseEvent.CLOSE` be emitid in cases other than
         // successful cmpletion? Currently no I think, but you never know.
-        updateDailyUsageLimit()
+        updateTrialUsesLeftCountIfApplicable()
+        // updateDailyUsageLimit()
       }
 
       break
@@ -171,43 +174,46 @@ const onMessage = (
   }
 }
 
-async function updateDailyUsageLimit() {
+async function updateTrialUsesLeftCountIfApplicable() {
   const {
-    [Settings.DAILY_LIMIT_USES_LEFT]: usesLeftOldFromStorage,
+    [Settings.PAYMENT_STATUS]: paymentStatusFromStorage,
+  }: {
+    [Settings.PAYMENT_STATUS]?: PaymentStatus
   } = await browser.storage.sync
     .get([
-      Settings.DAILY_LIMIT_USES_LEFT,
+      Settings.PAYMENT_STATUS,
     ])
 
-  const usesLeftOld: number = usesLeftOldFromStorage ?? dailyUsageLimit;
+  if (paymentStatusFromStorage == undefined) {
+    log(TAG, 'Warn: Used summarization when paymentStatus is not set in storage');
+    return
+  }
+
+  if (
+    paymentStatusFromStorage.type !==
+    PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED
+  ) {
+    log(TAG, `Not updating \`usesLeft\` coutner because paymentStatus.type=${paymentStatusFromStorage.type}`);
+    return;
+  }
+
+  const usesLeftOld: number = paymentStatusFromStorage.usesLeft;
   let usesLeftNew = usesLeftOld - 1;
   if (usesLeftNew <= 0) {
     // TODO fix: this can happen e.g. when the user has multiple tabs open.
     // They can start summarization on all of the tabs within a couple of
     // seconds, but this code only gets executed when a summarization
     // finishes.
-    log(TAG, 'Used summarization when daily limit is exhausted');
+    log(TAG, 'Used summarization when limit is exhausted');
     usesLeftNew = 0;
   }
 
-  // We could also check if `Settings.DAILY_LIMIT_RESET_TIME`
-  // is `undefined | null` instead.
-  const isFirstUsageAfterLimitReset = usesLeftOld === dailyUsageLimit;
-  if (isFirstUsageAfterLimitReset) {
-    browser.storage.sync.set({
-      // Let's make it 16 hours instead of 24, so that if they used the
-      // extension at 15:00 one day, they can use it again the next morning,
-      // from 07:00.
-      // The point of the limit is to make it impossible to use the extension
-      // more than 5 times before they go to sleep, and not strictly 24 hours.
-      [Settings.DAILY_LIMIT_RESET_TIME]: Date.now() + 16 * 60 * 60 * 1000,
-    });
-    // The count reset itself is performed somewhere else in the code, closer
-    // to the place where the value is actually used (read), and that is the
-    // UI.
+  const newPaymentStatus: PaymentStatus = {
+    ...paymentStatusFromStorage,
+    usesLeft: usesLeftNew,
   }
   browser.storage.sync.set({
-    [Settings.DAILY_LIMIT_USES_LEFT]: usesLeftNew,
+    [Settings.PAYMENT_STATUS]: newPaymentStatus,
   });
 }
 

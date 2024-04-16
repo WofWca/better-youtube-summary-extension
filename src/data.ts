@@ -42,11 +42,33 @@ export enum Settings {
   OPENAI_API_KEY = 'openai_api_key',
   TRANSLATION_TARGET_LANG = 'translation_target_lang',
   COPY_WITH_TIMESTAMPS = 'copy_with_timestamps',
-  DAILY_LIMIT_USES_LEFT = 'daily_limit_uses_left',
-  DAILY_LIMIT_RESET_TIME = 'daily_limit_reset_time',
+  PAYMENT_STATUS = 'payment_status',
+
+  // TODO refactor: remove these from storage, if the extension has been
+  // updated from a previous version?
+  // DAILY_LIMIT_USES_LEFT = 'daily_limit_uses_left',
+  // DAILY_LIMIT_RESET_TIME = 'daily_limit_reset_time',
 }
 
-export const dailyUsageLimit = 5;
+export enum PaymentStatusType {
+  NOT_PAID_BUT_CAN_ACTIVATE_TRIAL = 'not_paid_but_can_activate_trial',
+  /**
+   * This state is also assumed when subscription is canceled / expired,
+   * even if the user skipped trial and paid right away.
+   * `usesLeft` will be 0 in such a case.
+   */
+  NOT_PAID_BUT_TRIAL_ALREADY_STARTED = 'not_paid_but_trial_already_started',
+  PAID = 'paid',
+}
+export type PaymentStatus = {
+  type: Exclude<PaymentStatusType, PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED>
+} | {
+  type: PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED,
+  // This could be 0, which also means that the trial has been used up
+  usesLeft: number
+}
+
+export const initialTrialUsageLimit = 5;
 
 export enum SseEvent {
   SUMMARY = 'summary',
