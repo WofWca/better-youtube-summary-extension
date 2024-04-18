@@ -523,23 +523,35 @@ async function tryUpdatePaymentStatus(): Promise<void> {
 }
 
 /**
- * @throws on network error
+ * @throws on network error, or if the server returns invalid data for
+ *    whatever reason.
  */
 async function _fetchPaymentStatus(): Promise<PaymentStatus> {
-  const newPaymentStatusTypeP = _fetchPaymentStatusType()
+  const extpayUserP = extpay.getUser();
   const storageP = browser.storage.sync.get(Settings.PAYMENT_STATUS)
 
-  const [newPaymentStatusType, trialStartedAt] = await newPaymentStatusTypeP
+  const extpayUser = await extpayUserP;
+  log(TAG, `fetched extpay user, user=${JSON.stringify(extpayUser)}`)
 
-  if (
-    newPaymentStatusType === PaymentStatusType.PAID ||
-    newPaymentStatusType === PaymentStatusType.NOT_PAID_BUT_CAN_ACTIVATE_TRIAL
-  ) {
-    return { type: newPaymentStatusType }
+  if (extpayUser.paid) {
+    return { type: PaymentStatusType.PAID }
   }
-  // Now `newPaymentStatusType ===
-  //   PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED`
-  //
+
+  // Yeah `.paidAt == null`, because we don't offer a trial after
+  // the user has already paid.
+  if (extpayUser.paidAt == null && extpayUser.trialStartedAt == null) {
+    // TODO refactor idk if this makes sense to return
+    // `NOT_PAID_BUT_CAN_ACTIVATE_TRIAL` before the user has actually
+    // entered an email.
+    // I.e. when the user logs in, it might turn out that they have actually
+    // used their trial on a previous extension install.
+    return { type: PaymentStatusType.NOT_PAID_BUT_CAN_ACTIVATE_TRIAL };
+  }
+
+  const newPaymentStatusType =
+    PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED;
+
+  const trialStartedAt = extpayUser.trialStartedAt;
   // Now we need to check whether the trial was activated on this
   // extension installation, or on a previous one. In the latter case, we
   // will set `usagesLeft` to 0. See below.
@@ -621,37 +633,4 @@ async function _fetchPaymentStatus(): Promise<PaymentStatus> {
       }
     }
   }
-}
-
-/**
- * @returns actual payment status as stored on the extensionpay.com server
- * @throws on network error, or if the server returns invalid data for
- *    whatever reason.
- */
-async function _fetchPaymentStatusType():
-  Promise<[PaymentStatusType, Date | null]> {
-  const extpayUserP = extpay.getUser();
-
-  const extpayUser = await extpayUserP
-  log(TAG, `fetched extpay user, user=${JSON.stringify(extpayUser)}`)
-
-  if (extpayUser.paid) {
-    return [PaymentStatusType.PAID, extpayUser.trialStartedAt]
-  }
-
-  // Yeah `.paidAt == null`, because we don't offer a trial after
-  // the user has already paid.
-  if (extpayUser.paidAt == null && extpayUser.trialStartedAt == null) {
-    // TODO refactor idk if this makes sense to return
-    // `NOT_PAID_BUT_CAN_ACTIVATE_TRIAL` before the user has actually
-    // entered an email.
-    return [
-      PaymentStatusType.NOT_PAID_BUT_CAN_ACTIVATE_TRIAL,
-      extpayUser.trialStartedAt,
-    ];
-  }
-  return [
-    PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED,
-    extpayUser.trialStartedAt,
-  ];
 }
