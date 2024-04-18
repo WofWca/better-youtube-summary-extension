@@ -51,7 +51,13 @@ export enum Settings {
 }
 
 export enum PaymentStatusType {
-  NOT_PAID_BUT_CAN_ACTIVATE_TRIAL = 'not_paid_but_can_activate_trial',
+  /**
+   * This state also applies when the user hasn't been identified yet
+   * (i.e. anonymous).
+   * I.e. it might be the case that they have actually used their trial
+   * already.
+   */
+  NOT_PAID_BUT_CAN_TRY_TO_REQUEST_TRIAL = 'not_paid_but_can_try_to_request_trial',
   /**
    * This state is also assumed when subscription is canceled / expired,
    * even if the user skipped trial and paid right away.

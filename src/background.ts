@@ -336,7 +336,7 @@ browser.runtime.onConnect.addListener(port => {
           // TODO improve message, i18n??
           throw new Error('Could not reach the payment server. Check internet connection')
         }
-        if (paymentStatus.type === PaymentStatusType.NOT_PAID_BUT_CAN_ACTIVATE_TRIAL) {
+        if (paymentStatus.type === PaymentStatusType.NOT_PAID_BUT_CAN_TRY_TO_REQUEST_TRIAL) {
           // TODO i18n
           extpay.openTrialPage('5 summaries')
           // TODO impove error.
@@ -540,12 +540,9 @@ async function _fetchPaymentStatus(): Promise<PaymentStatus> {
   // Yeah `.paidAt == null`, because we don't offer a trial after
   // the user has already paid.
   if (extpayUser.paidAt == null && extpayUser.trialStartedAt == null) {
-    // TODO refactor idk if this makes sense to return
-    // `NOT_PAID_BUT_CAN_ACTIVATE_TRIAL` before the user has actually
-    // entered an email.
-    // I.e. when the user logs in, it might turn out that they have actually
-    // used their trial on a previous extension install.
-    return { type: PaymentStatusType.NOT_PAID_BUT_CAN_ACTIVATE_TRIAL };
+    // Keep in mind that this also happens when the user hasn't been
+    // identified yet (i.e. anonymous).
+    return { type: PaymentStatusType.NOT_PAID_BUT_CAN_TRY_TO_REQUEST_TRIAL };
   }
 
   const newPaymentStatusType =
@@ -585,7 +582,8 @@ async function _fetchPaymentStatus(): Promise<PaymentStatus> {
   // Looks a bit redundant and hard to follow.
   // It's because I messed up my "state machine" architecture.
   // Turns out that there are two distinct ways to transition from
-  // `NOT_PAID_BUT_CAN_ACTIVATE_TRIAL` to `NOT_PAID_BUT_TRIAL_ALREADY_STARTED`.
+  // `NOT_PAID_BUT_CAN_TRY_TO_REQUEST_TRIAL` to
+  // `NOT_PAID_BUT_TRIAL_ALREADY_STARTED`.
   // The first is when the user is first anonymous and then they activate the
   // trial on the trial page for the first time.
   // And the second is when they're anonymous at first, then they log in
@@ -602,7 +600,7 @@ async function _fetchPaymentStatus(): Promise<PaymentStatus> {
     }
   }
   switch (paymentStatusFromStorage.type) {
-    case PaymentStatusType.NOT_PAID_BUT_CAN_ACTIVATE_TRIAL: {
+    case PaymentStatusType.NOT_PAID_BUT_CAN_TRY_TO_REQUEST_TRIAL: {
       // This here means that the trial was activated _after_ this particular
       // extension installation, and not on a previous / different installation.
       return {
