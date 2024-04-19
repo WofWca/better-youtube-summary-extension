@@ -91,26 +91,13 @@ chrome.runtime.onInstalled.addListener((details) => {
     });
   }
 });
-const installedAtP: Promise<number> = (async () => {
-  // FYI the `_installed_at` key is not referenced anywhere else in this app.
-  // It's only here for this Promise.
-  let { _installed_at }: { _installed_at?: number } =
-    await browser.storage.sync.get('_installed_at')
-  if (_installed_at == undefined) {
-    _installed_at = Date.now()
-    browser.storage.sync.set({
-      '_installed_at': _installed_at
-    })
-  }
-  return _installed_at
-})()
 
 const extpay = ExtPay(EXTPAY_EXTENSION_ID)
 extpay.startBackground()
 let paymentStatus: PaymentStatus | undefined
 // TODO handle the fact that this async function could be called
 // several times... Or idk, just think and make sure it's fine.
-tryUpdatePaymentStatus()
+tryUpdatePaymentStatus(null)
 
 // https://github.com/Azure/fetch-event-source
 class FatalError extends Error { /* DO NOTHING. */ }
@@ -314,7 +301,7 @@ browser.runtime.onConnect.addListener(port => {
 
         if (!reChecked) {
           // Let's re-check though.
-          await tryUpdatePaymentStatus()
+          await tryUpdatePaymentStatus(() => getUserEmailFromPage(port))
           reChecked = true
           continue
         }
@@ -499,8 +486,10 @@ browser.runtime.onConnect.addListener(port => {
  *
  * If there is an error, keeps the `paymentStatus` variable as is.
  */
-async function tryUpdatePaymentStatus(): Promise<void> {
-  const actualPaymentStatusP = _fetchPaymentStatus()
+async function tryUpdatePaymentStatus(
+  getUserEmailFromPage: null | (() => Promise<GetUserEmailFromPageResult>),
+): Promise<void> {
+  const actualPaymentStatusP = _fetchPaymentStatus(getUserEmailFromPage)
   let actualPaymentStatus
   try {
     actualPaymentStatus = await actualPaymentStatusP
@@ -526,7 +515,9 @@ async function tryUpdatePaymentStatus(): Promise<void> {
  * @throws on network error, or if the server returns invalid data for
  *    whatever reason.
  */
-async function _fetchPaymentStatus(): Promise<PaymentStatus> {
+async function _fetchPaymentStatus(
+  getUserEmailFromPage: null | (() => Promise<GetUserEmailFromPageResult>),
+): Promise<PaymentStatus> {
   const extpayUserP = extpay.getUser();
   const storageP = browser.storage.sync.get(Settings.PAYMENT_STATUS)
 
@@ -536,99 +527,137 @@ async function _fetchPaymentStatus(): Promise<PaymentStatus> {
   if (extpayUser.paid) {
     return { type: PaymentStatusType.PAID }
   }
+  // Now, since the status is not `paid`, we can only return
+  // either `NOT_PAID_BUT_TRIAL_ALREADY_STARTED` or
+  // `NOT_PAID_BUT_CAN_TRY_TO_REQUEST_TRIAL`. Keep this in mind when reading
+  // the below code.
 
-  // Yeah `.paidAt == null`, because we don't offer a trial after
-  // the user has already paid.
-  if (extpayUser.paidAt == null && extpayUser.trialStartedAt == null) {
-    // Keep in mind that this also happens when the user hasn't been
-    // identified yet (i.e. anonymous).
-    return { type: PaymentStatusType.NOT_PAID_BUT_CAN_TRY_TO_REQUEST_TRIAL };
+  const {
+    [Settings.PAYMENT_STATUS]: paymentStatusFromStorage
+  }: { [Settings.PAYMENT_STATUS]?: PaymentStatus } = await storageP
+  // Assert, prior to the next two checks.
+  {const _dummy1: true = !extpayUser.paid;}
+  if (
+    paymentStatusFromStorage?.type ===
+    PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED
+  ) {
+    // Keep unchanged
+    return paymentStatusFromStorage
+  }
+  if (paymentStatusFromStorage?.type === PaymentStatusType.PAID) {
+    // Used to be paid, but now the subscription expired.
+    // They've already tried it, so no trial!
+    return {
+      type: PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED,
+      usesLeft: 0
+    }
+  }
+  // IDK why it says that the last part is `boolean` and not `true`,
+  // but you got the point.
+  // {const _dummy2: true =
+  //   paymentStatusFromStorage === undefined ||
+  //   paymentStatusFromStorage.type ===
+  //     PaymentStatusType.NOT_PAID_BUT_CAN_TRY_TO_REQUEST_TRIAL;}
+
+  // `extpayUser.email` might be present when the user is not logged in to
+  // YouTube. We'll `extpay.openTrialPage()` for them where they'll enter it.
+  const email =
+    (extpayUser as any).email as string | null ||
+    await getUserEmailFromPage?.()
+      .then((r) => (r.type === "found" ? r.email : null))
+      .catch(() => null);
+
+  const haveEmail = Boolean(email);
+  const haveDataToRequestTrial = haveEmail;
+  if (!haveDataToRequestTrial) {
+    return { type: PaymentStatusType.NOT_PAID_BUT_CAN_TRY_TO_REQUEST_TRIAL }
   }
 
-  const newPaymentStatusType =
-    PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED;
-
-  const trialStartedAt = extpayUser.trialStartedAt;
-  // Now we need to check whether the trial was activated on this
-  // extension installation, or on a previous one. In the latter case, we
-  // will set `usagesLeft` to 0. See below.
-  //
-  // And the only case where this can happen is when the previous state
-  // was `PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED`
-
-  const isTrialStartedBeforeInstallation = (
-    trialStartedAt &&
-    trialStartedAt.getTime() < await installedAtP
-  )
-  if (isTrialStartedBeforeInstallation) {
-    // This must mean that the trial has already been activated on a
+  const res = await fetch(`${BASE_URL}/api/request_trial`, {
+    method: 'POST',
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+    })
+  })
+  const resJson = (await res.json())
+  log(TAG, `Trial request response from server: ${JSON.stringify(resJson)}`)
+  const trialGrantedVal = resJson.granted
+  if (typeof trialGrantedVal !== 'boolean') {
+    // Uh-oh, wrong format? This shouldn't really happen.
+    // The trial has not been granted, but neither has it been rejected IDK.
+    log(TAG, 'Warn: invalid response from server to a trial request?')
+    return { type: PaymentStatusType.NOT_PAID_BUT_CAN_TRY_TO_REQUEST_TRIAL };
+  }
+  // Now it is important to write the result to storage ASAP
+  // because performing this request with the same email will from now
+  // on result in `granted: false`.
+  return {
+    type: PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED,
+    // When `trialGrantedVal === false` it must mean that
+    // the trial has already been activated on a
     // previous / different extension installation / instance.
     // we have no way to check how many times they used it in a previous
     // installation. Perhaps they're trying to trick us
     // by simply reinstalling the extension.
-    log(TAG, `Trial already started on previous installation, startedAt=${trialStartedAt}, installedAt=${await installedAtP}`)
-    return {
-      type: newPaymentStatusType,
-      usesLeft: 0
-    }
+    usesLeft: trialGrantedVal ? initialTrialUsageLimit : 0,
   }
+}
 
-  const storage = await storageP
-  const {
-    [Settings.PAYMENT_STATUS]: paymentStatusFromStorage
-  }: { [Settings.PAYMENT_STATUS]?: PaymentStatus } = storage
+export type GetUserEmailFromPageResult =
+  { type: 'failed' }
+  | { type: 'notFound' }
+  | { type: 'found', email: string };
 
-  // TODO refactor the below logic?
-  // Looks a bit redundant and hard to follow.
-  // It's because I messed up my "state machine" architecture.
-  // Turns out that there are two distinct ways to transition from
-  // `NOT_PAID_BUT_CAN_TRY_TO_REQUEST_TRIAL` to
-  // `NOT_PAID_BUT_TRIAL_ALREADY_STARTED`.
-  // The first is when the user is first anonymous and then they activate the
-  // trial on the trial page for the first time.
-  // And the second is when they're anonymous at first, then they log in
-  // on the trial page and it turns out that they have already activated the
-  // trial long before the extension was installed.
-  // The only way to differentiate between these is to look at
-  // `extpayUser.trialStartedAt`.
-  // I realized it the hard way, this is why `_fetchPaymentStatusType` returns
-  // a tuple, and the logic below is a little messed up.
-  if (!paymentStatusFromStorage) {
-    return {
-      type: newPaymentStatusType,
-      usesLeft: initialTrialUsageLimit
+/**
+ * @param requestPort The port that the page created as a result of `connect(`
+ */
+async function getUserEmailFromPage(
+  requestPort: browser.Runtime.Port
+): Promise<GetUserEmailFromPageResult> {
+  return new Promise(async _r => {
+    log(TAG, 'Requesting email from content script')
+
+    // Idk when this can happen, and if it really can.
+    // But let's just make sure that this promise doesn't hang forever.
+    const timeoutId = setTimeout(() => {
+      r({ type: 'failed' });
+      log(TAG, 'Timeout waiting for content script to respond to email request')
+    }, 60 * 1000);
+
+    const r = (...args: Parameters<typeof _r>) => {
+      _r(...args)
+      log(TAG, `getUserEmailFromPage result:${JSON.stringify(args)}`)
+      clearTimeout(timeoutId)
     }
-  }
-  switch (paymentStatusFromStorage.type) {
-    case PaymentStatusType.NOT_PAID_BUT_CAN_TRY_TO_REQUEST_TRIAL: {
-      // This here means that the trial was activated _after_ this particular
-      // extension installation, and not on a previous / different installation.
-      return {
-        type: newPaymentStatusType,
-        usesLeft: initialTrialUsageLimit,
-      }
+
+    if (requestPort.sender?.tab?.id == undefined) {
+      // This shouldn't happen
+      r({ type: 'failed' })
+      return
     }
-    case PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED: {
-      // Returning with the `usesLeft` count from storage.
-      // Though whoever uses this function shouldn't rely on it, because it's
-      // async and it's not clear for which moment in time it's true.
-      return paymentStatusFromStorage
+
+    const resP = browser.tabs.sendMessage(
+      requestPort.sender.tab.id,
+      { type: 'getUserEmailFromPage' },
+      // Meh, there's no need in this
+      // { frameId: requestPort.sender.frameId }
+    );
+
+    let res;
+    try {
+      res = await resP
+    } catch(e) {
+      r({ type: 'failed' })
+      return
     }
-    case PaymentStatusType.PAID: {
-      // Paid, but subscription expired.
-      return {
-        type: newPaymentStatusType,
-        usesLeft: 0,
-      }
+    if (!res) {
+      r({ type: 'failed' })
+      return
     }
-    default: {
-      // This should never happen.
-      return {
-        type: newPaymentStatusType,
-        // We messed up, let's gift them the lucky number of free uses.
-        // (But again, this should never happen).
-        usesLeft: 7,
-      }
-    }
-  }
+    r(res)
+    log(TAG, `Content script responded to email request: ${JSON.stringify(res)}`)
+  })
 }

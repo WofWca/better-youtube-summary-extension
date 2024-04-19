@@ -1,3 +1,4 @@
+import browser from 'webextension-polyfill'
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { createRoot } from 'react-dom/client'
@@ -6,6 +7,8 @@ import Panel from './panel'
 
 import log from './log'
 import { parseVid } from './utils'
+
+import type { GetUserEmailFromPageResult } from './background'
 
 // Insert as soon as possible.
 const link = document.createElement('link')
@@ -98,3 +101,88 @@ const root = document.createElement('div')
 root.id = 'better-youtube-summary-root'
 document.body.appendChild(root)
 createRoot(root).render(<App />)
+
+// Email stuff:
+browser.runtime.onMessage.addListener(
+  (
+    message,
+    _sender,
+    sendResponse: (response: GetUserEmailFromPageResult) => void
+  ) => {
+    if (message.type !== 'getUserEmailFromPage') {
+      log(TAG, 'Received message, but type is not getUserEmailFromPage. Ignoring')
+      return
+    }
+    log(TAG, 'getUserEmailFromPage request received')
+
+    getUserEmailFromPage()
+      .then(email => {
+        if (!email) {
+          sendResponse({ type: 'notFound' })
+        } else {
+          sendResponse({ type: 'found', email })
+        }
+      })
+      .catch(() => {
+        // This shouldn't happen, but let's ensure to execute the callback.
+        log(TAG, 'Warn: getUserEmailFromPage, failed')
+        sendResponse({ type: 'failed' })
+      })
+
+    return true;
+  }
+)
+// TODO perf: import this function dynamically.
+async function getUserEmailFromPage(): Promise<string | null> {
+  if (
+    location.host !== 'www.youtube.com'
+    && location.host !== 'youtube.com'
+  ) {
+    log(TAG, 'Warn: getUserEmailFromPage, but we\'re not on YouTube?')
+    return null;
+  }
+
+  let body: string;
+  try {
+    // This the URL that YouTube fetches when you click "Switch account".
+    // When you click that, the menu shows your email address
+    // and accounts that you can switch to.
+    // Apparently the menu is build based on this data,
+    // which contains the email.
+    body = await (await fetch('/getAccountSwitcherEndpoint')).text()
+  } catch (e) {
+    log(TAG, 'Failed to fetch user email from YouTube. Either the user is not logged in, or we messed up.')
+    return null
+  }
+
+  return findGmailAddr(body)
+}
+
+// Of course I'm not gonna pretend that his is the most correct
+// and reliable email searcher in the world, but it's good enough for now.
+// See https://stackoverflow.com/questions/201323/how-can-i-validate-an-email-address-using-a-regular-expression
+/**
+ * @example
+ * findGmailAddr('something"abc@gmail.com"def') === 'abc@gmail.com'
+ * findGmailAddr('something"a@bcd.com"def') === null
+ */
+function findGmailAddr(str: string): string | null {
+  const atPart = '@gmail.com'
+  const atPartInd = str.indexOf(atPart + '"')
+  if (atPartInd < 0) {
+    return null
+  }
+
+  if (str.indexOf(atPart + 1, atPartInd) >= 0) {
+    log(TAG, 'Warn: found 2 or more emails. Returning just the 1st one')
+  }
+
+  // The email address is quoted
+  const startingQuoteInd = str.lastIndexOf('"', atPartInd)
+  if (startingQuoteInd < 0) {
+    log(TAG, 'Warn: @gmail.com found, but still failed to parse email')
+    return null
+  }
+
+  return str.slice(startingQuoteInd + 1, atPartInd) + atPart
+}
