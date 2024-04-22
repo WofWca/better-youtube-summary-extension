@@ -29,6 +29,12 @@ export enum MessageType {
   REQUEST = 'request',
   RESPONSE = 'response',
   SSE = 'sse',
+  /**
+   * The message that our extensionpay.com content script sends when it
+   * wants to fill the "email" input on the payment page.
+   * We get the email from YouTube and fill it.
+   */
+  EMAIL_REQUEST = 'email_request',
   ERROR = 'error',
 }
 

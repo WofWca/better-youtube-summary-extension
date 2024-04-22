@@ -24,6 +24,7 @@ import browser from 'webextension-polyfill'
 import log from './log'
 
 // TODO move this to an env file or something.
+// FYI it's also used in `manifest.json`.
 // const EXTPAY_EXTENSION_ID = 'dkuvofduqgcezwnmbdhqsbrufvynpeqkdkga'
 const EXTPAY_EXTENSION_ID = 'youtube-video-summarizer'
 
@@ -168,6 +169,15 @@ browser.runtime.onMessage.addListener((message: Message, sender, sendResponse) =
 
   const { type, requestUrl, requestInit = {} } = message
   log(TAG, `runtime, onMessage, requestUrl=${requestUrl}`)
+
+  // This message is handled in a different
+  // `browser.runtime.onMessage.addListener`
+  // TODO refactor: would be nice not having a special case for it here I guess,
+  // just ignoring this message instead.
+  // Or having just one `onMessage` handler.
+  if (type === MessageType.EMAIL_REQUEST) {
+    return
+  }
 
   // Must be MessageType.REQUEST
   if (type !== MessageType.REQUEST || !requestUrl) {
@@ -334,6 +344,9 @@ browser.runtime.onConnect.addListener(port => {
         if (paymentStatus.type === PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED) {
           // This means that no trial usages are left
           extpay.openPaymentPage()
+          prepareToRespondToEmailRequestFromExtensionpay(
+            getUserEmailFromPage(port)
+          )
           // TODO improvement: also utilize `extpay.openLoginPage()`?
           throw new Error(mustPayErrorMessage)
         }
@@ -662,4 +675,71 @@ async function getUserEmailFromPage(
     r(res)
     log(TAG, `Content script responded to email request: ${JSON.stringify(res)}`)
   })
+}
+
+/**
+ * When called, adds a listener that waits for a message
+ * from our extensionpay.com content script asking for
+ * the email address of the user.
+ * After responding to one such message, or after a timeout, stops listening
+ * for messages.
+ */
+async function prepareToRespondToEmailRequestFromExtensionpay(
+  userEmailP: Promise<GetUserEmailFromPageResult>
+) {
+  const onMessage: Parameters<typeof browser.runtime.onMessage.addListener>[0]
+    = (msg, sender, sendResponse: (email: string | null) => void) =>
+  {
+    if (!sender.url) {
+      log(TAG, 'Received message, but sender.url is not set')
+      return
+    }
+    if (
+      // https://github.com/Glench/ExtPay/blob/8ab80aa38e13fb9012e6e89f657f692375e0a799/dist/ExtPay.common.js#L22-L23
+      !sender.url.startsWith(
+        `https://extensionpay.com/extension/${EXTPAY_EXTENSION_ID}`
+      )
+    ) {
+      log(TAG, 'Received message, but sender is not extensionpay.com')
+      return
+    }
+    if (msg.type !== MessageType.EMAIL_REQUEST) {
+      log(TAG, 'Warn: received a message from extensionpay.com content script, but message type is unrecognized')
+      return
+    }
+
+    log(TAG, 'Received email request from extensionpay.com content script')
+    userEmailP
+      .then(result => {
+        if (result.type !== 'found') {
+          // To be handled in `catch` below
+          throw new Error()
+        }
+        sendResponse(result.email);
+        log(TAG, 'Replied to email request from extensionpay.com content script: success')
+      })
+      .catch(() => {
+        log(TAG, 'Replied to email request from extensionpay.com content script: failed')
+        sendResponse(null)
+      })
+      .finally(() => {
+        removeListener()
+      })
+    return true
+  }
+
+  // TODO fix: we're not attaching the listener on the top level, so
+  // the background scipt could get suspended before the message is received.
+  // Very unlikely though as it makes the request almost instantly
+  // after the page is loaded.
+  browser.runtime.onMessage.addListener(onMessage)
+  const removeListener = () => {
+    browser.runtime.onMessage.removeListener(onMessage)
+    clearTimeout(timeoutId)
+  }
+
+  const timeoutId = setTimeout(() => {
+    removeListener()
+    log(TAG, 'Timeout waiting for extensionpay.com content script to request email')
+  }, 3 * 60 * 1000)
 }

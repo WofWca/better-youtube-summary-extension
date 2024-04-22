@@ -25,6 +25,15 @@
         "js/vendor.js",
         "js/contentScript.js"
       ]
+    },
+    {
+      "matches": [
+        "https://extensionpay.com/extension/youtube-video-summarizer*"
+      ],
+      "js": [
+        "js/extensionpayContentScript.js",
+        "js/vendor.js"
+      ]
     }
   ],
   "background": {

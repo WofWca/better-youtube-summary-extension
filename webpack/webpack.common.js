@@ -9,6 +9,7 @@ module.exports = {
     options: path.join(srcDir, 'options.tsx'),
     background: path.join(srcDir, 'background.ts'),
     contentScript: path.join(srcDir, 'contentScript.tsx'),
+    extensionpayContentScript: path.join(srcDir, 'extensionpayContentScript.ts'),
   },
 
   output: {
