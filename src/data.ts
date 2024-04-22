@@ -73,6 +73,9 @@ export type PaymentStatus = {
   // This could be 0, which also means that the trial has been used up
   usesLeft: number
 }
+// These texts are not displayed in the UI currently.
+export const mustPayErrorMessage = 'mustPay';
+export const mustActivateTrialOrPayErrorMessage = 'mustActivateTrialOrPay';
 
 export const initialTrialUsageLimit = 5;
 

@@ -15,6 +15,8 @@ import {
   Settings,
   SseEvent,
   initialTrialUsageLimit,
+  mustActivateTrialOrPayErrorMessage,
+  mustPayErrorMessage,
 } from './data';
 import { isChrome } from './utils'
 
@@ -327,13 +329,13 @@ browser.runtime.onConnect.addListener(port => {
           // TODO i18n
           extpay.openTrialPage('5 summaries')
           // TODO impove error.
-          throw new Error('Please start a free trial or activate the subscription')
+          throw new Error(mustActivateTrialOrPayErrorMessage)
         }
         if (paymentStatus.type === PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED) {
           // This means that no trial usages are left
           extpay.openPaymentPage()
           // TODO improvement: also utilize `extpay.openLoginPage()`?
-          throw new Error('Please activate the subscription to proceed')
+          throw new Error(mustPayErrorMessage)
         }
         // This should never happen
         throw Error('Failed to check payment status')

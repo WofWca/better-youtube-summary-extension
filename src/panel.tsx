@@ -34,6 +34,8 @@ import {
   Summary,
   TargetLang,
   initialTrialUsageLimit,
+  mustActivateTrialOrPayErrorMessage,
+  mustPayErrorMessage,
 } from './data'
 import { copyChapters, parseVid } from './utils'
 import { useSummarize, feedback, useTranslate } from './api'
@@ -219,10 +221,19 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
   let alertMsg = ''
   if (error) {
     const { name, message } = error as Error
-    showAlert = true
-    alertSeverity = 'error'
-    alertTitle = name
-    alertMsg = message
+    // Otherwise there is no real need to show the error, because
+    // currently we're opening a popup page, which makes the issue obvious.
+    if (
+      !([
+        mustPayErrorMessage,
+        mustActivateTrialOrPayErrorMessage
+      ].includes(message))
+    ) {
+      showAlert = true
+      alertSeverity = 'error'
+      alertTitle = name
+      alertMsg = message
+    }
   } else if (state === State.NOTHING) {
     showAlert = true
     alertSeverity = 'warning'
@@ -479,6 +490,8 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
                 list.length <= 0 &&
                 paymentStatus?.type
                   === PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED &&
+                (
+                paymentStatus.usesLeft > 0 ?
                 <Tooltip title={t('trial_uses_left').toString()}>
                   <Typography
                     variant='body1'
@@ -494,6 +507,19 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
                     }
                   </Typography>
                 </Tooltip>
+                :
+                <Typography
+                  variant='body1'
+                  sx={{
+                    color: 'text.primary',
+                    opacity: 0.6,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  {t('pay_call_to_action').toString()}
+                </Typography>
+                )
               }
               {
                 list.length > 0 &&
