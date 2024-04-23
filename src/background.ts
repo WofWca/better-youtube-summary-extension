@@ -87,9 +87,9 @@ if (isChrome()) {
   }
 }
 
-chrome.runtime.onInstalled.addListener((details) => {
-  if (details.reason === (chrome.runtime as any).OnInstalledReason.INSTALL) {
-    chrome.tabs.create({
+browser.runtime.onInstalled.addListener((details) => {
+  if (details.reason === (browser.runtime as any).OnInstalledReason.INSTALL) {
+    browser.tabs.create({
       url: "https://magicboxpremium.com/extension/yt/index.html",
     });
   }
