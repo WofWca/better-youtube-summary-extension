@@ -49,6 +49,10 @@ import ReactMarkdown from 'react-markdown'
 
 const TAG = 'panel'
 
+// TODO move these into "options" or build variables idk
+const SHOW_SYNC_TO_VIDEO_TIME = false;
+const SHOW_UNFOLD_LESS = false;
+
 const checkIsDarkMode = (prefersDarkMode: boolean): boolean => {
   // Follow the System Preferences.
   if (prefersDarkMode) return true
@@ -522,7 +526,7 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
                 )
               }
               {
-                list.length > 0 &&
+                SHOW_SYNC_TO_VIDEO_TIME && list.length > 0 &&
                 <Tooltip title={t('sync_to_video_time').toString()}>
                   <IconButton
                     aria-label={t('sync_to_video_time').toString()}
@@ -534,7 +538,7 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
                 </Tooltip>
               }
               {
-                list.length > 0 &&
+                SHOW_UNFOLD_LESS && list.length > 0 &&
                 <Tooltip title={t('unfold_less').toString()}>
                   <IconButton
                     aria-label={t('unfold_less').toString()}
