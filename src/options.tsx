@@ -150,7 +150,7 @@ const App = () => {
               }
             </Select>
           </ListItem>
-          <ListItem
+          {/* <ListItem
             divider
             disablePadding
             sx={{
@@ -189,7 +189,7 @@ const App = () => {
                 setOpenAiApiKey(value)
               }}
             />
-          </ListItem>
+          </ListItem> */}
           <ListItem
             divider
             disablePadding
