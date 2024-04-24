@@ -43,8 +43,6 @@ const App = () => {
       block.style.overflow = 'hidden'
       block.style.minHeight = '48px'
       block.style.marginBottom = '8px'
-      block.style.border = '1px solid var(--yt-spec-10-percent-layer)'
-      block.style.borderRadius = '12px'
 
       const ref = parent.childNodes.length > 0 ? parent.childNodes[0] : null
       parent.insertBefore(block, ref)

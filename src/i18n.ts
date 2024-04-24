@@ -24,6 +24,7 @@ const resources = {
       'optional': 'Optional',
       'settings': 'Settings',
       'summarize': 'Summarize',
+      'summary': 'Video Summary',
       'trial_uses_left': 'Free trial summaries',
       'pay_call_to_action': 'Continue for $9.99',
       'sync_to_video_time': 'Sync to Video Time',

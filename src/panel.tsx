@@ -434,6 +434,17 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
 
   return (
     <ThemeProvider theme={currentTheme}>
+      <Typography
+        variant='h3'
+        sx={{
+          color: 'text.primary',
+          fontWeight: 900,
+          fontSize: '2rem',
+          mb: '1rem'
+        }}
+      >
+        {t('summary').toString()}
+      </Typography>
       <Box
         sx={{
           display: 'flex',
@@ -442,6 +453,8 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
           minHeight: '48px',
           maxHeight: `${playerHeight > 240 ? playerHeight : 240}px`,
           bgcolor: 'background.default',
+          border: '1px solid var(--yt-spec-10-percent-layer)',
+          borderRadius: '12px',
         }}
       >
         <AppBar position='static' color='transparent' elevation={0}>
