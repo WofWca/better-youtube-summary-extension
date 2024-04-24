@@ -216,7 +216,7 @@ const App = () => {
               }}
             />
           </ListItem>
-          <ListItem disablePadding divider>
+          {/* <ListItem disablePadding divider>
             <ListItemButton
               component='a'
               href='https://twitter.com/mth_li'
@@ -278,7 +278,7 @@ const App = () => {
                 <span className="material-symbols-outlined">open_in_new</span>
               </Box>
             </ListItemButton>
-          </ListItem>
+          </ListItem> */}
           <ListItem disablePadding>
             <ListItemButton
               component='a'
