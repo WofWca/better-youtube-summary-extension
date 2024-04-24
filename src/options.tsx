@@ -110,46 +110,6 @@ const App = () => {
             marginRight: '-16px',
           }}
         >
-          <ListItem
-            divider
-            disablePadding
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%',
-              pt: '8px',
-              pb: '8px',
-              pl: '16px',
-              pr: '9px', // trick.
-            }}
-          >
-            <ListItemText>
-              {t('translation').toString()}
-            </ListItemText>
-            <Select
-              size='small'
-              sx={{
-                width: '180px',
-                height: '32px',
-              }}
-              value={targetLang}
-              onChange={({ target: { value: key } }) => {
-                // Don't useEffect for `targetLangKey` here.
-                browser.storage.sync.set({ [Settings.TRANSLATION_TARGET_LANG]: key })
-                setTargetLang(key)
-              }}
-            >
-              {
-                Object.keys(TargetLang).map(key => (
-                  <MenuItem key={key} value={key}>
-                    {/* @ts-ignore */}
-                    {TargetLang[key]}
-                  </MenuItem>
-                ))
-              }
-            </Select>
-          </ListItem>
           {/* <ListItem
             divider
             disablePadding

@@ -8,7 +8,7 @@ const resources = {
       'title': 'YouTube Video Summarizer',
       'slogan': '',
 
-      'translation': 'Set Translation Language',
+      'translation': 'Translation Language',
       'openai': 'I want to use my OpenAI API Key',
       'copy_with_timestamps': 'Copy with Timestamps',
       'twitter': 'Follow on Twitter',

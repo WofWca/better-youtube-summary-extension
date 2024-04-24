@@ -8,11 +8,14 @@ import AppBar from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
 import ButtonGroup from '@mui/material/ButtonGroup'
 import Divider from '@mui/material/Divider'
+import FormControl from '@mui/material/FormControl'
 import IconButton from '@mui/material/IconButton'
+import InputLabel from '@mui/material/InputLabel'
 import List from '@mui/material/List'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
+import Select from '@mui/material/Select'
 import Toolbar from '@mui/material/Toolbar'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
@@ -417,6 +420,34 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
         {t('bad').toString()}
       </MenuItem>
       <MenuItem
+        key={'language'}
+      >
+        <FormControl>
+          <InputLabel id="translation-target-lang-label">
+            {t('translation').toString()}
+          </InputLabel>
+          <Select
+            labelId='translation-target-lang-label'
+            variant='filled'
+            value={targetLang}
+            onChange={({ target: { value: key } }) => {
+              // Don't useEffect for `targetLangKey` here.
+              browser.storage.sync.set({ [Settings.TRANSLATION_TARGET_LANG]: key })
+              setTargetLang(key)
+            }}
+          >
+            {
+              Object.keys(TargetLang).map(key => (
+                <MenuItem key={key} value={key}>
+                  {/* @ts-ignore */}
+                  {TargetLang[key]}
+                </MenuItem>
+              ))
+            }
+          </Select>
+        </FormControl>
+      </MenuItem>
+      <MenuItem
         key={'settings'}
         sx={{ pr: '18px' }}
         onClick={() => {
@@ -622,7 +653,14 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
                       onClick={() => {
                         const lang = chapters.length > 0 ? chapters[0].lang : targetLangkeys[0]
                         if (lang === targetLang || !targetLang) {
-                          openOptionsPage()
+                          // TODO improvement: previously we'd open the
+                          // options page that contained the "language" input
+                          // but now we moved it here, to the panel.
+                          // We need to indicate the issue somehow.
+                          // I have tried to utilize the "alert", but currently
+                          // its `onClose` resets a lot of state. Not ideal.
+
+                          // openOptionsPage()
                         } else {
                           setTranslatable(!translatable)
                         }
