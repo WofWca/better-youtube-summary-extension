@@ -505,11 +505,26 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
               </Tooltip>
               {
                 list.length <= 0 &&
-                paymentStatus?.type
-                  === PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED &&
-                (
-                paymentStatus.usesLeft > 0 ?
-                <Tooltip title={t('trial_uses_left').toString()}>
+                (paymentStatus?.type
+                  === PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED
+                ? (
+                  paymentStatus.usesLeft > 0 ?
+                  <Tooltip title={t('trial_uses_left').toString()}>
+                    <Typography
+                      variant='body1'
+                      sx={{
+                        color: 'text.primary',
+                        opacity: 0.6,
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      {
+                        `${paymentStatus.usesLeft} / ${initialTrialUsageLimit}`
+                      }
+                    </Typography>
+                  </Tooltip>
+                  :
                   <Typography
                     variant='body1'
                     sx={{
@@ -519,23 +534,23 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
                       alignItems: 'center',
                     }}
                   >
-                    {
-                      `${paymentStatus.usesLeft} / ${initialTrialUsageLimit}`
-                    }
+                    {t('pay_call_to_action').toString()}
                   </Typography>
-                </Tooltip>
-                :
-                <Typography
-                  variant='body1'
-                  sx={{
-                    color: 'text.primary',
-                    opacity: 0.6,
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  {t('pay_call_to_action').toString()}
-                </Typography>
+                )
+                : (
+                  !doing && !done &&
+                  <Typography
+                    variant='body1'
+                    sx={{
+                      color: 'text.primary',
+                      opacity: 0.6,
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    {'← ' + t('start_summarizing').toString()}
+                  </Typography>
+                )
                 )
               }
               {
