@@ -40,7 +40,7 @@ import {
   mustActivateTrialOrPayErrorMessage,
   mustPayErrorMessage,
 } from './data'
-import { copyChapters, parseVid } from './utils'
+import { copyChapters, isFirefox, parseVid } from './utils'
 import { useSummarize, feedback, useTranslate } from './api'
 import { Map as ImmutableMap } from 'immutable'
 
@@ -91,12 +91,13 @@ const initTargetLang = (): string => {
 }
 
 // https://stackoverflow.com/a/62461987
-const openOptionsPage = () => {
+const openTab = (url: string) => {
   browser.runtime.sendMessage({
     type: MessageType.OPEN_TAB,
-    requestUrl: browser.runtime.getURL('options.html'),
+    requestUrl: url,
   } as Message)
 }
+const openOptionsPage = () => openTab(browser.runtime.getURL('options.html'))
 
 // https://stackoverflow.com/a/75704708
 const parseChapters = (): PageChapter[] => {
@@ -400,6 +401,22 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
         onClick={() => {
           closeMenu()
           feedback(pageUrl, true)
+          browser.storage.sync.get(Settings.ALREADY_OPENED_REVIEWS_PAGE).then(res => {
+            const { [Settings.ALREADY_OPENED_REVIEWS_PAGE]: alreadyOpened }:
+              { [Settings.ALREADY_OPENED_REVIEWS_PAGE]?: string } = res
+            if (!alreadyOpened) {
+              browser.storage.sync.set({
+                [Settings.ALREADY_OPENED_REVIEWS_PAGE]: true
+              })
+              openTab(
+                // TODO Microsoft store?
+                isFirefox()
+                  ? `https://addons.mozilla.org/firefox/addon/${browser.runtime.id}/reviews/`
+                  // https://developer.chrome.com/docs/webstore/support-users/#the_rating_tab
+                  : `https://chrome.google.com/webstore/detail/${browser.runtime.id}/reviews`
+              )
+            }
+          })
         }}
       >
         <ListItemIcon>

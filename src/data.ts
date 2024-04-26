@@ -53,6 +53,7 @@ export enum Settings {
   TRANSLATION_TARGET_LANG = 'translation_target_lang',
   COPY_WITH_TIMESTAMPS = 'copy_with_timestamps',
   PAYMENT_STATUS = 'payment_status',
+  ALREADY_OPENED_REVIEWS_PAGE = 'already_opened_reviews_page',
 
   // TODO refactor: remove these from storage, if the extension has been
   // updated from a previous version?
