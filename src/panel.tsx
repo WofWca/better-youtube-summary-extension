@@ -146,7 +146,9 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
   const [selected, setSelected] = useState<string>('') // cid.
   const [expands, setExpands] = useState<ImmutableMap<string, boolean>>(ImmutableMap())
 
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
+  const [anchorEl, _setAnchorEl] = useState<HTMLElement | null>(null)
+  const closeMenu = () => _setAnchorEl(null)
+  const openMenu = (anchor: HTMLElement) => _setAnchorEl(anchor)
   const [playerHeight, setPlayerHeight] = useState(560) // px.
 
   if (pageUrl !== prevPageUrl) {
@@ -389,14 +391,14 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
         left: (anchorEl?.getBoundingClientRect()?.left ?? 0) - 56,
       }}
       open={Boolean(anchorEl)}
-      onClose={() => setAnchorEl(null)}
+      onClose={closeMenu}
     >
       <MenuItem
         key={'good'}
         sx={{ pr: '18px' }}
         disabled={!done}
         onClick={() => {
-          setAnchorEl(null)
+          closeMenu()
           feedback(pageUrl, true)
         }}
       >
@@ -410,7 +412,7 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
         sx={{ pr: '18px' }}
         disabled={!done}
         onClick={() => {
-          setAnchorEl(null)
+          closeMenu()
           feedback(pageUrl, false)
         }}
       >
@@ -451,7 +453,7 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
         key={'settings'}
         sx={{ pr: '18px' }}
         onClick={() => {
-          setAnchorEl(null)
+          closeMenu()
           openOptionsPage()
         }}
       >
@@ -688,7 +690,7 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
                 <IconButton
                   aria-label={t('more').toString()}
                   style={{ color: iconColorActive }} // not `sx` here.
-                  onClick={e => setAnchorEl(e.currentTarget)}
+                  onClick={e => openMenu(e.currentTarget)}
                 >
                   {/* SVG copied from YouTube, not perfect but ok. */}
                   <svg
