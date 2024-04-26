@@ -93,7 +93,7 @@ const initTargetLang = (): string => {
 // https://stackoverflow.com/a/62461987
 const openOptionsPage = () => {
   browser.runtime.sendMessage({
-    type: MessageType.REQUEST,
+    type: MessageType.OPEN_TAB,
     requestUrl: browser.runtime.getURL('options.html'),
   } as Message)
 }

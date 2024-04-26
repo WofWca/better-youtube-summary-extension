@@ -179,22 +179,15 @@ browser.runtime.onMessage.addListener((message: Message, sender, sendResponse) =
     return
   }
 
+  // 'chrome-extension://' or 'moz-extension://'
+  if (type === MessageType.OPEN_TAB) {
+    browser.tabs.create({ url: requestUrl })
+    return
+  }
+
   // Must be MessageType.REQUEST
   if (type !== MessageType.REQUEST || !requestUrl) {
     throwInvalidRequest(sendResponse, message)
-    return true
-  }
-
-  // 'chrome-extension://' or 'moz-extension://'
-  if (requestUrl.includes('-extension://')) {
-    browser.tabs.create({ url: requestUrl })
-
-    // @ts-ignore
-    sendResponse({
-      type: MessageType.RESPONSE,
-      responseOk: true,
-    } as Message)
-
     return true
   }
 

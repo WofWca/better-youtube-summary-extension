@@ -35,6 +35,10 @@ export enum MessageType {
    * We get the email from YouTube and fill it.
    */
   EMAIL_REQUEST = 'email_request',
+  /**
+   * Just open a new tab with the specified URL.
+   */
+  OPEN_TAB = 'open_tab',
   ERROR = 'error',
 }
 
