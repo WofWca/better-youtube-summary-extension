@@ -18,7 +18,7 @@ export const copyChapters = (chapters: Chapter[], copyWithTimestamps: boolean = 
     }
 
     const content = pangu.spacing(c.summary ?? '').trim()
-    text += `# ${title}\n\n${content}\n\n`
+    text += `${title}\n\n${content}\n\n`
   }
 
   text = text.trim()
