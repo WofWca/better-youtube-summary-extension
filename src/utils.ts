@@ -12,7 +12,7 @@ export const copyChapters = (chapters: Chapter[], copyWithTimestamps: boolean = 
   const pangu = require('pangu')
 
   for (const c of chapters) {
-    let title = `# ${pangu.spacing(c.chapter).trim()}`
+    let title = `## ${pangu.spacing(c.chapter).trim()}`
     if (copyWithTimestamps) {
       title = `${title} - ${formatSeconds(c.start)}`
     }
