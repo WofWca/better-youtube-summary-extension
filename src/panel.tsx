@@ -651,7 +651,15 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
                       marginRight: '8px',
                       color: done ? iconColorActive : iconColorDisabled,
                     }}
-                    onClick={() => copyChapters(chapters, copyWithTimestamps)}
+                    onClick={() => {
+                      copyChapters(
+                        // TODO fix: copy translated. For `chapters`,
+                        // translation is done inside of `ChapterItem`.
+                        videoSummaryUntranslated || '',
+                        chapters,
+                        copyWithTimestamps
+                      )
+                    }}
                   >
                     <span className='material-symbols-outlined'>content_copy</span>
                   </IconButton>

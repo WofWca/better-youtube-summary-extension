@@ -4,8 +4,13 @@ import browser from 'webextension-polyfill'
 
 import { Chapter } from './data'
 
-export const copyChapters = (chapters: Chapter[], copyWithTimestamps: boolean = false) => {
+export const copyChapters = (
+  videoSummary: string,
+  chapters: Chapter[],
+  copyWithTimestamps: boolean = false
+) => {
   let text = ''
+  text += videoSummary
 
   // FIXME (Matthew Lee) window not defined.
   // https://github.com/vinta/pangu.js
@@ -18,10 +23,10 @@ export const copyChapters = (chapters: Chapter[], copyWithTimestamps: boolean = 
     }
 
     const content = pangu.spacing(c.summary ?? '').trim()
-    text += `${title}\n\n${content}\n\n`
+    text += `\n\n${title}\n\n${content}`
   }
 
-  text = text.trim()
+  text = text.trim() + '\n'
   if (!text) return
   copy(text)
 }
