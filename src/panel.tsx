@@ -7,6 +7,7 @@ import AlertTitle from '@mui/material/AlertTitle'
 import AppBar from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
 import ButtonGroup from '@mui/material/ButtonGroup'
+import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import FormControl from '@mui/material/FormControl'
 import IconButton from '@mui/material/IconButton'
@@ -395,50 +396,6 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
       onClose={closeMenu}
     >
       <MenuItem
-        key={'good'}
-        sx={{ pr: '18px' }}
-        disabled={!done}
-        onClick={() => {
-          closeMenu()
-          feedback(pageUrl, true)
-          browser.storage.sync.get(Settings.ALREADY_OPENED_REVIEWS_PAGE).then(res => {
-            const { [Settings.ALREADY_OPENED_REVIEWS_PAGE]: alreadyOpened }:
-              { [Settings.ALREADY_OPENED_REVIEWS_PAGE]?: string } = res
-            if (!alreadyOpened) {
-              browser.storage.sync.set({
-                [Settings.ALREADY_OPENED_REVIEWS_PAGE]: true
-              })
-              openTab(
-                // TODO Microsoft store?
-                isFirefox()
-                  ? `https://addons.mozilla.org/firefox/addon/${browser.runtime.id}/reviews/`
-                  // https://developer.chrome.com/docs/webstore/support-users/#the_rating_tab
-                  : `https://chrome.google.com/webstore/detail/${browser.runtime.id}/reviews`
-              )
-            }
-          })
-        }}
-      >
-        <ListItemIcon>
-          <span className='material-symbols-outlined'>thumb_up</span>
-        </ListItemIcon>
-        {t('good').toString()}
-      </MenuItem>
-      <MenuItem
-        key={'bad'}
-        sx={{ pr: '18px' }}
-        disabled={!done}
-        onClick={() => {
-          closeMenu()
-          feedback(pageUrl, false)
-        }}
-      >
-        <ListItemIcon>
-          <span className='material-symbols-outlined'>thumb_down</span>
-        </ListItemIcon>
-        {t('bad').toString()}
-      </MenuItem>
-      <MenuItem
         key={'language'}
       >
         <FormControl>
@@ -801,6 +758,51 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
             <List subheader={<li />}>
               {list}
             </List>
+          }
+          {
+            (videoSummary || list.length > 0) && done &&
+            <>
+            <Divider />
+            <Button
+              variant='text'
+              size='small'
+              sx={{
+                color: 'text.primary',
+                px: '1rem',
+              }}
+              startIcon={<span className='material-symbols-outlined'>thumb_up</span>}
+              onClick={() => {
+                feedback(pageUrl, true)
+
+                browser.storage.sync.get(Settings.ALREADY_OPENED_REVIEWS_PAGE).then(res => {
+                  const { [Settings.ALREADY_OPENED_REVIEWS_PAGE]: alreadyOpened }:
+                    { [Settings.ALREADY_OPENED_REVIEWS_PAGE]?: string } = res
+                  if (!alreadyOpened) {
+                    browser.storage.sync.set({
+                      [Settings.ALREADY_OPENED_REVIEWS_PAGE]: true
+                    })
+                    openTab(
+                      // TODO Microsoft store?
+                      isFirefox()
+                        ? `https://addons.mozilla.org/firefox/addon/${browser.runtime.id}/reviews/`
+                        // https://developer.chrome.com/docs/webstore/support-users/#the_rating_tab
+                        : `https://chrome.google.com/webstore/detail/${browser.runtime.id}/reviews`
+                    )
+                  }
+                })
+              }}
+            >{t('good').toString()}</Button>
+            <Button
+              variant='text'
+              size='small'
+              sx={{
+                color: 'text.primary',
+                px: '1rem',
+              }}
+              startIcon={<span className='material-symbols-outlined'>thumb_down</span>}
+              onClick={() => feedback(pageUrl, false)}
+            >{t('bad').toString()}</Button>
+            </>
           }
         </Box>
       </Box>
