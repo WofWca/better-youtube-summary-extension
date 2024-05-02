@@ -57,6 +57,8 @@ const TAG = 'panel'
 const SHOW_SYNC_TO_VIDEO_TIME = false;
 const SHOW_UNFOLD_LESS = false;
 
+const SUPPORT_URL = 'https://magicboxpremium.com/extension/yt/support.html';
+
 const checkIsDarkMode = (prefersDarkMode: boolean): boolean => {
   // Follow the System Preferences.
   if (prefersDarkMode) return true
@@ -423,6 +425,21 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
           </Select>
         </FormControl>
       </MenuItem>
+      {
+      SUPPORT_URL?.length > 0 &&
+      <MenuItem
+        key={'support'}
+        onClick={() => {
+          closeMenu()
+          openTab(SUPPORT_URL)
+        }}
+      >
+        <ListItemIcon>
+          <span className='material-symbols-outlined'>assistant</span>
+        </ListItemIcon>
+        {t('support').toString()}
+      </MenuItem>
+      }
       <MenuItem
         key={'settings'}
         sx={{ pr: '18px' }}

@@ -23,6 +23,7 @@ const resources = {
       'more': 'More',
       'optional': 'Optional',
       'settings': 'Settings',
+      'support': 'Live Support',
       'summarize': 'Summarize',
       'start_summarizing': 'Start summarizing',
       'summary': 'Video Summary',
