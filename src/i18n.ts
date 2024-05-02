@@ -27,7 +27,7 @@ const resources = {
       'start_summarizing': 'Start summarizing',
       'summary': 'Video Summary',
       'trial_uses_left': 'Free trial summaries',
-      'pay_call_to_action': 'Continue for $9.99',
+      'pay_call_to_action': 'Continue for $9/month',
       'sync_to_video_time': 'Sync to Video Time',
       'translate': 'Translate',
       'unfold_less': 'Unfold Less',
