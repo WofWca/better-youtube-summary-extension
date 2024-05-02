@@ -58,6 +58,16 @@ const SHOW_SYNC_TO_VIDEO_TIME = false;
 const SHOW_UNFOLD_LESS = false;
 
 const SUPPORT_URL = 'https://magicboxpremium.com/extension/yt/support.html';
+const RATE_GOOD_URL_OVERRIDE = 'https://magicboxpremium.com/extension/yt/rategood.html'
+const RATE_GOOD_URL =
+  RATE_GOOD_URL_OVERRIDE ?? (
+    // TODO Microsoft store?
+    isFirefox()
+      ? `https://addons.mozilla.org/firefox/addon/${browser.runtime.id}/reviews/`
+      // https://developer.chrome.com/docs/webstore/support-users/#the_rating_tab
+      : `https://chrome.google.com/webstore/detail/${browser.runtime.id}/reviews`
+  )
+const RATE_BAD_URL = 'https://magicboxpremium.com/extension/yt/ratebad.html'
 
 const checkIsDarkMode = (prefersDarkMode: boolean): boolean => {
   // Follow the System Preferences.
@@ -791,22 +801,19 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
               onClick={() => {
                 feedback(pageUrl, true)
 
-                browser.storage.sync.get(Settings.ALREADY_OPENED_REVIEWS_PAGE).then(res => {
-                  const { [Settings.ALREADY_OPENED_REVIEWS_PAGE]: alreadyOpened }:
-                    { [Settings.ALREADY_OPENED_REVIEWS_PAGE]?: string } = res
-                  if (!alreadyOpened) {
-                    browser.storage.sync.set({
-                      [Settings.ALREADY_OPENED_REVIEWS_PAGE]: true
-                    })
-                    openTab(
-                      // TODO Microsoft store?
-                      isFirefox()
-                        ? `https://addons.mozilla.org/firefox/addon/${browser.runtime.id}/reviews/`
-                        // https://developer.chrome.com/docs/webstore/support-users/#the_rating_tab
-                        : `https://chrome.google.com/webstore/detail/${browser.runtime.id}/reviews`
-                    )
-                  }
-                })
+                // Same as with "rate bad" below
+                if (RATE_GOOD_URL) {
+                  browser.storage.sync.get(Settings.ALREADY_OPENED_REVIEWS_PAGE).then(res => {
+                    const { [Settings.ALREADY_OPENED_REVIEWS_PAGE]: alreadyOpened }:
+                      { [Settings.ALREADY_OPENED_REVIEWS_PAGE]?: string } = res
+                    if (!alreadyOpened) {
+                      browser.storage.sync.set({
+                        [Settings.ALREADY_OPENED_REVIEWS_PAGE]: true
+                      })
+                      openTab(RATE_GOOD_URL)
+                    }
+                  })
+                }
               }}
             >{t('good').toString()}</Button>
             <Button
@@ -817,7 +824,23 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
                 px: '1rem',
               }}
               startIcon={<span className='material-symbols-outlined'>thumb_down</span>}
-              onClick={() => feedback(pageUrl, false)}
+              onClick={() => {
+                feedback(pageUrl, false)
+
+                // Same as with "rate good" above
+                if (RATE_BAD_URL) {
+                  browser.storage.sync.get(Settings.ALREADY_OPENED_RATE_BAD).then(res => {
+                    const { [Settings.ALREADY_OPENED_RATE_BAD]: alreadyOpened }:
+                      { [Settings.ALREADY_OPENED_RATE_BAD]?: string } = res
+                    if (!alreadyOpened) {
+                      browser.storage.sync.set({
+                        [Settings.ALREADY_OPENED_RATE_BAD]: true
+                      })
+                      openTab(RATE_BAD_URL)
+                    }
+                  })
+                }
+              }}
             >{t('bad').toString()}</Button>
             </>
           }
