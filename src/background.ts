@@ -28,6 +28,8 @@ import log from './log'
 // const EXTPAY_EXTENSION_ID = 'dkuvofduqgcezwnmbdhqsbrufvynpeqkdkga'
 const EXTPAY_EXTENSION_ID = 'youtube-video-summarizer'
 
+const ON_UNINSTALL_POPUP_URL = 'https://magicboxpremium.com/extension/yt/delete.html'
+
 const TAG = 'background'
 const manifest = browser.runtime.getManifest()
 
@@ -92,6 +94,8 @@ browser.runtime.onInstalled.addListener((details) => {
     browser.tabs.create({
       url: "https://magicboxpremium.com/extension/yt/index.html",
     });
+
+    browser.runtime.setUninstallURL(ON_UNINSTALL_POPUP_URL);
   }
 });
 
