@@ -484,6 +484,14 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
 
   return (
     <ThemeProvider theme={currentTheme}>
+      <Box
+        sx={{
+          maxHeight: `${playerHeight > 240 ? playerHeight : 240}px`,
+          // So that it's not overflown
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
       <Typography
         variant='h3'
         sx={{
@@ -501,7 +509,6 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
           overflow: 'hidden',
           flexDirection: 'column',
           minHeight: '48px',
-          maxHeight: `${playerHeight > 240 ? playerHeight : 240}px`,
           bgcolor: 'background.default',
           border: '1px solid var(--yt-spec-10-percent-layer)',
           borderRadius: '12px',
@@ -797,6 +804,7 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
           }
         </Box>
       </Box>
+    </Box>
     </ThemeProvider>
   )
 }
