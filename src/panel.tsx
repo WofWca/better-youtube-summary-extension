@@ -157,6 +157,11 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
   const [targetLang, setTargetLang] = useState(initTargetLang())
   const [copyWithTimestamps, setCopyWithTimestamps] = useState(false)
 
+  // TODO improvement: it'd be nice to fetch this from the server,
+  // because the way it is now the state gets reset on page reload,
+  // and the user might think we ignored their feedback.
+  const [userFeedback, setUserFeedback] = useState<'good' | 'bad' | null>(null)
+
   const [selected, setSelected] = useState<string>('') // cid.
   const [expands, setExpands] = useState<ImmutableMap<string, boolean>>(ImmutableMap())
 
@@ -186,6 +191,8 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
     setChaptersReady(false)
     // TODO fix: actually detect whether the new chapters have loaded.
     setChaptersReadyAt(Date.now() + 3 * 1000)
+
+    setUserFeedback(null)
   }
   useEffect(() => {
     if (chaptersReady) {
@@ -289,6 +296,12 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
     setExpands(expands.clear())
     setSummarizing(0) // reset.
     setTranslatable(false) // reset.
+
+    // In theory we should reset this as well because the new request could
+    // return a new response e.g. if the server resummarized the video,
+    // but it's not often that this happens and it's probably better
+    // to just fetch the feedback state from the server.
+    // setUserFeedback(null)
   }
 
   // https://developer.mozilla.org/zh-CN/docs/Web/API/Element/scrollIntoView
@@ -794,12 +807,20 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
               variant='text'
               size='small'
               sx={{
-                color: 'text.primary',
+                color: userFeedback === 'good' ? 'primary' : 'text.primary',
                 px: '1rem',
               }}
-              startIcon={<span className='material-symbols-outlined'>thumb_up</span>}
+              startIcon={
+                <span
+                  // TODO improvement: filled don't load for some reason
+                  // https://mui.com/material-ui/icons/
+                  // className={`material-symbols-${userFeedback === 'good' ? 'filled' : 'outlined'}`}
+                  className='material-symbols-outlined'
+                >thumb_up</span>
+              }
               onClick={() => {
                 feedback(pageUrl, true)
+                setUserFeedback('good')
 
                 // Same as with "rate bad" below
                 if (RATE_GOOD_URL) {
@@ -820,12 +841,20 @@ const Panel = ({ pageUrl }: { pageUrl: string }) => {
               variant='text'
               size='small'
               sx={{
-                color: 'text.primary',
+                color: userFeedback === 'bad' ? 'primary' : 'text.primary',
                 px: '1rem',
               }}
-              startIcon={<span className='material-symbols-outlined'>thumb_down</span>}
+              startIcon={
+                <span
+                  // TODO improvement: filled don't load for some reason
+                  // https://mui.com/material-ui/icons/
+                  // className={`material-symbols-${userFeedback === 'bad' ? 'filled' : 'outlined'}`}
+                  className='material-symbols-outlined'
+                >thumb_down</span>
+              }
               onClick={() => {
                 feedback(pageUrl, false)
+                setUserFeedback('bad')
 
                 // Same as with "rate good" above
                 if (RATE_BAD_URL) {
