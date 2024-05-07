@@ -340,9 +340,7 @@ browser.runtime.onConnect.addListener(port => {
         if (paymentStatus.type === PaymentStatusType.NOT_PAID_BUT_TRIAL_ALREADY_STARTED) {
           // This means that no trial usages are left
           extpay.openPaymentPage()
-          prepareToRespondToEmailRequestFromExtensionpay(
-            getUserEmailFromPage(port)
-          )
+          prepareToRespondToEmailRequestFromExtensionpay(port)
           // TODO improvement: also utilize `extpay.openLoginPage()`?
           throw new Error(mustPayErrorMessage)
         }
@@ -574,6 +572,18 @@ async function _fetchPaymentStatus(
   // YouTube. We'll `extpay.openTrialPage()` for them where they'll enter it.
   const email =
     (extpayUser as any).email as string | null ||
+    // TODO improvement: consider prioritizing `getUserEmailFromPage` and
+    // requesting the `identity.email` permission dynamically for
+    // `getUserEmailFromChromeIdentityApi` if we fail to get the email
+    // otherwise.
+    // Or maybe nah, because it's more far to state up front that the
+    // extension requires user email.
+    await getUserEmailFromChromeIdentityApi() ||
+    // Case where it makes sense to try to get the email from the page:
+    // if `getUserEmailFromChromeIdentityApi` failed: the user is using
+    // a non-Chrome browser (e.g. Brave) (i.e. it's not almost guaranteed
+    // that if they're logged in to YouTube then they're also logged in
+    // to the browser)
     await getUserEmailFromPage?.()
       .then((r) => (r.type === "found" ? r.email : null))
       .catch(() => null);
@@ -617,9 +627,32 @@ async function _fetchPaymentStatus(
   }
 }
 
+/**
+ * @returns The email of the Google user currently logged in to the browser.
+ */
+async function getUserEmailFromChromeIdentityApi(): Promise<string | null> {
+  if (!globalThis?.chrome?.identity?.getProfileUserInfo) {
+    log(TAG, 'Warn: `chrome.identity.getProfileUserInfo` is not available. Non-Chrome browser?')
+    return null
+  }
+
+  const profileUserInfo = await new Promise<chrome.identity.UserInfo>(r => {
+    chrome.identity.getProfileUserInfo(
+      { accountStatus: chrome.identity.AccountStatus.ANY },
+      r
+    )
+  })
+  // TODO improvement: I think identifying users by `.id` instead of
+  // `.email` is better for privacy, but currently the rest of the app
+  // uses email.
+  return profileUserInfo.email?.length > 0
+    ? profileUserInfo.email
+    : null;
+}
+
 export type GetUserEmailFromPageResult =
-  { type: 'failed' }
-  | { type: 'notFound' }
+  { type: 'failed', email?: undefined }
+  | { type: 'notFound', email?: undefined }
   | { type: 'found', email: string };
 
 /**
@@ -679,9 +712,10 @@ async function getUserEmailFromPage(
  * the email address of the user.
  * After responding to one such message, or after a timeout, stops listening
  * for messages.
+ * @param requestPort The port that the page created as a result of `connect(`
  */
 async function prepareToRespondToEmailRequestFromExtensionpay(
-  userEmailP: Promise<GetUserEmailFromPageResult>
+  requestPort: browser.Runtime.Port
 ) {
   const onMessage: Parameters<typeof browser.runtime.onMessage.addListener>[0]
     = (msg, sender, sendResponse: (email: string | null) => void) =>
@@ -704,14 +738,21 @@ async function prepareToRespondToEmailRequestFromExtensionpay(
       return
     }
 
+    const userEmailP = (async () =>
+      // In theory the extensionpayContentScript.ts could use
+      // `chrome.identity.getProfileUserInfo` by itself,
+      // but let's keep the logic in one place.
+      (await getUserEmailFromChromeIdentityApi()) ||
+      (await getUserEmailFromPage(requestPort)).email)()
+
     log(TAG, 'Received email request from extensionpay.com content script')
     userEmailP
-      .then(result => {
-        if (result.type !== 'found') {
+      .then(email => {
+        if (!email) {
           // To be handled in `catch` below
           throw new Error()
         }
-        sendResponse(result.email);
+        sendResponse(email);
         log(TAG, 'Replied to email request from extensionpay.com content script: success')
       })
       .catch(() => {

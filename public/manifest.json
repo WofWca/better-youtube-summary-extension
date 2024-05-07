@@ -41,7 +41,9 @@
     "type": "module"
   },
   "permissions": [
-    "storage"
+    "storage",
+    "identity",
+    "identity.email"
   ],
   "host_permissions": [
     "https://youtube.magicboxpremium.com/*"
