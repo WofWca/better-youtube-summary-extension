@@ -9,6 +9,7 @@ const resources = {
       'slogan': '',
 
       'translation': 'Translation Language',
+      'manage_subscription': 'Manage Subscription',
       'openai': 'I want to use my OpenAI API Key',
       'copy_with_timestamps': 'Copy with Timestamps',
       'twitter': 'Follow on Twitter',

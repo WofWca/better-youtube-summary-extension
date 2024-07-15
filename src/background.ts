@@ -188,6 +188,11 @@ browser.runtime.onMessage.addListener((message: Message, sender, sendResponse) =
     return
   }
 
+  if (type === MessageType.OPEN_EXTPAY_MANAGEMENT_PAGE) {
+    extpay.openPaymentPage()
+    return
+  }
+
   // Must be MessageType.REQUEST
   if (type !== MessageType.REQUEST || !requestUrl) {
     throwInvalidRequest(sendResponse, message)

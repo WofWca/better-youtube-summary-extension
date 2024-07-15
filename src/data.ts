@@ -39,6 +39,7 @@ export enum MessageType {
    * Just open a new tab with the specified URL.
    */
   OPEN_TAB = 'open_tab',
+  OPEN_EXTPAY_MANAGEMENT_PAGE = 'open_extpay_management_page',
   ERROR = 'error',
 }
 

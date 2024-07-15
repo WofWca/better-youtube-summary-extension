@@ -19,7 +19,7 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 import { ThemeProvider } from '@mui/material/styles'
 import { lightTheme, darkTheme } from './theme'
 
-import { Settings, TargetLang } from './data'
+import { Message, MessageType, Settings, TargetLang } from './data'
 
 import browser from 'webextension-polyfill'
 import './i18n'
@@ -110,6 +110,34 @@ const App = () => {
             marginRight: '-16px',
           }}
         >
+          {/* We could disable this if the user hasn't made a payment yet,
+          but they likely have since they're on the options page.
+          Plus there is nothing too bad about always showing this button. */}
+          <ListItem disablePadding divider>
+            <ListItemButton
+              component='button'
+              type='button'
+              onClick={() => {
+                browser.runtime.sendMessage({
+                  type: MessageType.OPEN_EXTPAY_MANAGEMENT_PAGE,
+                } as Message)
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                }}
+              >
+                <ListItemText>
+                  {t('manage_subscription').toString()}
+                </ListItemText>
+                <span className="material-symbols-outlined">open_in_new</span>
+              </Box>
+            </ListItemButton>
+          </ListItem>
           {/* <ListItem
             divider
             disablePadding
