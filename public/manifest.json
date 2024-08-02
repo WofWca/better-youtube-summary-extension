@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "minimum_chrome_version": "92",
-  "name": "YouTube Video Summarizer",
-  "description": "📝 Effortlessly summarize YouTube videos with 'YouTube Video Summarizer', your AI video-to-text converter and Chat GPT tool",
-  "version": "1.6.0",
+  "name": "__MSG_appName__",
+  "description": "__MSG_shortDesc__",
+  "version": "1.6.1",
   "icons": {
     "16": "icon16.png",
     "32": "icon32.png",
@@ -36,5 +36,6 @@
   ],
   "host_permissions": [
     "https://youtube.magicboxpremium.com/*"
-  ]
+  ],
+  "default_locale": "en"
 }
